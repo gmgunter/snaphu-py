@@ -35,6 +35,7 @@ def regrow_conncomp_from_unw(
     mag_file: str | os.PathLike[str] | None = None,
     mask_file: str | os.PathLike[str] | None = None,
     min_conncomp_frac: float = 0.01,
+    conncomp_thresh: int = 300,
     scratchdir: str | os.PathLike[str] | None = None,
 ) -> None:
     """
@@ -70,6 +71,9 @@ def regrow_conncomp_from_unw(
     min_conncomp_frac : float, optional
         Minimum size of a single connected component, as a fraction of the total number
         of pixels in the array. Defaults to 0.01.
+    conncomp_thresh : int, optional
+        Cost threshold for connected components. A higher threshold will give smaller
+        connected components. Defaults to 300.
     scratchdir : path-like or None, optional
         The scratch directory where the config file will be written. If None, a
         default temporary directory is chosen as though by ``tempfile.gettempdir()``.
@@ -92,6 +96,7 @@ def regrow_conncomp_from_unw(
         NCORRLOOKS {nlooks}
         STATCOSTMODE {cost.upper()}
         MINCONNCOMPFRAC {min_conncomp_frac}
+        CONNCOMPTHRESH {conncomp_thresh}
         """
     )
     if mag_file is not None:
@@ -120,6 +125,7 @@ def grow_conncomps(
     mag: InputDataset | None = None,
     mask: InputDataset | None = None,
     min_conncomp_frac: float = 0.01,
+    conncomp_thresh: int = 300,
     scratchdir: str | os.PathLike[str] | None = None,
     delete_scratch: bool = True,
     conncomp: OutputDataset,
@@ -137,6 +143,7 @@ def grow_conncomps(
     mag: InputDataset | None = None,
     mask: InputDataset | None = None,
     min_conncomp_frac: float = 0.01,
+    conncomp_thresh: int = 300,
     scratchdir: str | os.PathLike[str] | None = None,
     delete_scratch: bool = True,
 ) -> np.ndarray: ...  # pragma: no cover
@@ -151,6 +158,7 @@ def grow_conncomps(  # type: ignore[no-untyped-def]
     mag=None,
     mask=None,
     min_conncomp_frac=0.01,
+    conncomp_thresh=300,
     scratchdir=None,
     delete_scratch=True,
     conncomp=None,
@@ -202,6 +210,9 @@ def grow_conncomps(  # type: ignore[no-untyped-def]
     min_conncomp_frac : float, optional
         Minimum size of a single connected component, as a fraction of the total number
         of pixels in the array. Defaults to 0.01.
+    conncomp_thresh : int, optional
+        Cost threshold for connected components. A higher threshold will give smaller
+        connected components. Defaults to 300.
     scratchdir : path-like or None, optional
         Scratch directory where intermediate processing artifacts are written.
         If the specified directory does not exist, it will be created. If None,
@@ -269,6 +280,11 @@ def grow_conncomps(  # type: ignore[no-untyped-def]
 
     check_cost_mode(cost)
 
+    if (min_conncomp_frac < 0.0) or (min_conncomp_frac > 1.0):
+        raise ValueError
+    if conncomp_thresh < 0:
+        raise ValueError
+
     with scratch_directory(scratchdir, delete=delete_scratch) as dir_:
         # Create a raw binary file in the scratch directory for the unwrapped phase and
         # copy the input data to it. (`mkstemp` is used to avoid data races in case the
@@ -318,6 +334,7 @@ def grow_conncomps(  # type: ignore[no-untyped-def]
             mag_file=tmp_mag,
             mask_file=tmp_mask,
             min_conncomp_frac=min_conncomp_frac,
+            conncomp_thresh=conncomp_thresh,
             scratchdir=dir_,
         )
 

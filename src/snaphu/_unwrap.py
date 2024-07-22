@@ -96,6 +96,7 @@ def unwrap(
     *,
     mask: InputDataset | None = None,
     min_conncomp_frac: float = 0.01,
+    conncomp_thresh: int = 300,
     phase_grad_window: tuple[int, int] = (7, 7),
     ntiles: tuple[int, int] = (1, 1),
     tile_overlap: int | tuple[int, int] = 0,
@@ -122,6 +123,7 @@ def unwrap(
     *,
     mask: InputDataset | None = None,
     min_conncomp_frac: float = 0.01,
+    conncomp_thresh: int = 300,
     phase_grad_window: tuple[int, int] = (7, 7),
     ntiles: tuple[int, int] = (1, 1),
     tile_overlap: int | tuple[int, int] = 0,
@@ -144,6 +146,7 @@ def unwrap(  # type: ignore[no-untyped-def]
     *,
     mask=None,
     min_conncomp_frac=0.01,
+    conncomp_thresh=300,
     phase_grad_window=(7, 7),
     ntiles=(1, 1),
     tile_overlap=0,
@@ -199,6 +202,9 @@ def unwrap(  # type: ignore[no-untyped-def]
     min_conncomp_frac : float, optional
         Minimum size of a single connected component, as a fraction of the total number
         of pixels in the tile. Defaults to 0.01.
+    conncomp_thresh : int, optional
+        Cost threshold for connected components. A higher threshold will give smaller
+        connected components. Defaults to 300.
     phase_grad_window : (int, int), optional
         The dimensions, in pixels, of the sliding window used for averaging wrapped
         phase gradients to get the mean non-layover slope, in directions parallel and
@@ -322,6 +328,11 @@ def unwrap(  # type: ignore[no-untyped-def]
     phase_grad_window = tuple(phase_grad_window)
     check_2d_shapes(phase_grad_window=phase_grad_window)
 
+    if (min_conncomp_frac < 0.0) or (min_conncomp_frac > 1.0):
+        raise ValueError
+    if conncomp_thresh < 0:
+        raise ValueError
+
     # Validate inputs related to tiling and coerce them to the expected types.
     ntiles, tile_overlap, nproc = normalize_and_validate_tiling_params(
         ntiles=ntiles, tile_overlap=tile_overlap, nproc=nproc
@@ -371,6 +382,7 @@ def unwrap(  # type: ignore[no-untyped-def]
             STATCOSTMODE {cost.upper()}
             INITMETHOD {init.upper()}
             MINCONNCOMPFRAC {min_conncomp_frac}
+            CONNCOMPTHRESH {conncomp_thresh}
             KPARDPSI {phase_grad_window[0]}
             KPERPDPSI {phase_grad_window[1]}
             NTILEROW {ntiles[0]}
@@ -427,6 +439,7 @@ def unwrap(  # type: ignore[no-untyped-def]
                 mag_file=tmp_mag,
                 mask_file=tmp_mask,
                 min_conncomp_frac=min_conncomp_frac,
+                conncomp_thresh=conncomp_thresh,
                 scratchdir=dir_,
             )
 
